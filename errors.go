@@ -123,6 +123,8 @@ type fundamental struct {
 
 func (f *fundamental) Error() string { return f.msg }
 
+func (f *fundamental) Message() string { return f.msg }
+
 func (f *fundamental) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
@@ -157,6 +159,13 @@ type withStack struct {
 }
 
 func (w *withStack) Cause() error { return w.error }
+
+func (w *withStack) Message() string {
+	if msg, ok := w.error.(messager); ok {
+		return msg.Message()
+	}
+	return w.error.Error()
+}
 
 func (w *withStack) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -227,6 +236,7 @@ type withMessage struct {
 
 func (w *withMessage) Error() string { return w.msg + ": " + w.cause.Error() }
 func (w *withMessage) Cause() error  { return w.cause }
+func (w *withMessage) Message() error  { return w.msg }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -242,6 +252,9 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 	}
 }
 
+type causer interface {
+	Cause() error
+}
 // Cause returns the underlying cause of the error, if possible.
 // An error value has a cause if it implements the following
 // interface:
@@ -254,10 +267,6 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 // be returned. If the error is nil, nil will be returned without further
 // investigation.
 func Cause(err error) error {
-	type causer interface {
-		Cause() error
-	}
-
 	for err != nil {
 		cause, ok := err.(causer)
 		if !ok {
@@ -266,4 +275,19 @@ func Cause(err error) error {
 		err = cause.Cause()
 	}
 	return err
+}
+
+type messager interface {
+	Message() string
+}
+
+func Message(err error) string {
+	for err == nil {
+		msg, ok := err.(messager)
+		if !ok {
+			break
+		}
+		return msg.Message()
+	}
+	return ""
 }
