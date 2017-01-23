@@ -236,7 +236,7 @@ type withMessage struct {
 
 func (w *withMessage) Error() string { return w.msg + ": " + w.cause.Error() }
 func (w *withMessage) Cause() error  { return w.cause }
-func (w *withMessage) Message() error  { return w.msg }
+func (w *withMessage) Message() string  { return w.msg }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -255,6 +255,7 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 type causer interface {
 	Cause() error
 }
+
 // Cause returns the underlying cause of the error, if possible.
 // An error value has a cause if it implements the following
 // interface:
@@ -281,6 +282,7 @@ type messager interface {
 	Message() string
 }
 
+// Message get msg
 func Message(err error) string {
 	for err == nil {
 		msg, ok := err.(messager)
